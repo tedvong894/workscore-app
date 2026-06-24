@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="工作评分">
 <meta name="theme-color" content="#2d6a4f">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>工作评分系统</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
@@ -435,6 +435,100 @@
     .badge-mid { background: #3a2800; color: #f0c060; }
     .badge-low { background: #3a1a1a; color: #f09090; }
   }
+
+  /* ======= 手机适配 ======= */
+  @media (max-width: 640px) {
+
+    /* Header：标题隐藏，导航移到底部 */
+    .app-header {
+      padding: 0 0.75rem;
+      height: 48px;
+      justify-content: space-between;
+    }
+
+    .app-title { display: none; }
+
+    .nav-tabs { display: none; } /* 移到底部 */
+
+    .date-nav { font-size: 13px; gap: 6px; flex: 1; justify-content: center; }
+    .date-nav span { white-space: nowrap; }
+
+    /* 底部导航栏 */
+    body { padding-bottom: 60px; }
+
+    body::after {
+      content: '';
+      display: block;
+      height: 60px;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 60px;
+      background: var(--surface);
+      border-top: 0.5px solid var(--border);
+      display: flex;
+      z-index: 200;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .bottom-nav-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      border: none;
+      background: none;
+      color: var(--text3);
+      font-size: 10px;
+      font-family: inherit;
+      cursor: pointer;
+      padding: 6px 0;
+    }
+
+    .bottom-nav-btn .icon { font-size: 20px; line-height: 1; }
+    .bottom-nav-btn.active { color: var(--accent); }
+
+    /* 主内容区 */
+    .main { padding: 0.75rem 0.75rem; }
+
+    /* 今日：两栏 → 单栏 */
+    .today-grid {
+      grid-template-columns: 1fr;
+    }
+
+    /* 总分卡片横向排列（环形图+评分说明并排） */
+    .score-ring-wrap { padding: 0.5rem 0 0.5rem; }
+
+    /* 两列 → 单列 */
+    .two-col { grid-template-columns: 1fr; }
+
+    /* 统计数字：4列 → 2列 */
+    .metric-row { grid-template-columns: repeat(2, 1fr); }
+
+    /* 本周7格：字体缩小 */
+    .week-days { gap: 4px; }
+    .wd-label { font-size: 10px; }
+    .wd-score { font-size: 16px; }
+
+    /* 输入框更大更易点击 */
+    .form-input { font-size: 16px; padding: 10px 12px; } /* 16px防止iOS自动缩放 */
+    .task-score-input { font-size: 16px; width: 58px; padding: 6px 4px; }
+    .btn-add { padding: 10px 14px; font-size: 15px; }
+
+    /* 删除按钮更大 */
+    .task-del { width: 32px; height: 32px; font-size: 20px; }
+
+    /* 卡片间距收紧 */
+    .card { padding: 1rem; }
+    .mt1 { margin-top: 0.75rem; }
+
+    /* 图表高度手机上略低 */
+    .chart-wrap canvas { max-height: 200px; }
+  }
 </style>
 </head>
 <body>
@@ -454,6 +548,25 @@
     <button onclick="changeDay(1)">›</button>
   </div>
 </header>
+
+<!-- 手机底部导航 -->
+<nav class="bottom-nav" id="bottom-nav" style="display:none">
+  <button class="bottom-nav-btn active" onclick="showPage('today')">
+    <span class="icon">📋</span><span>今日</span>
+  </button>
+  <button class="bottom-nav-btn" onclick="showPage('week')">
+    <span class="icon">📈</span><span>本周</span>
+  </button>
+  <button class="bottom-nav-btn" onclick="showPage('month')">
+    <span class="icon">📅</span><span>本月</span>
+  </button>
+  <button class="bottom-nav-btn" onclick="showPage('year')">
+    <span class="icon">🗓</span><span>全年</span>
+  </button>
+  <button class="bottom-nav-btn" onclick="showPage('settings')">
+    <span class="icon">⚙️</span><span>模板</span>
+  </button>
+</nav>
 
 <main class="main">
 
@@ -1136,11 +1249,21 @@ function applyTemplate() {
 }
 
 // ---- NAV ----
+const PAGES = ['today','week','month','year','settings'];
+
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.bottom-nav-btn').forEach(t => t.classList.remove('active'));
+
   document.getElementById('page-' + name).classList.add('active');
-  document.querySelectorAll('.nav-tab')[['today','week','month','year','settings'].indexOf(name)].classList.add('active');
+  const idx = PAGES.indexOf(name);
+  document.querySelectorAll('.nav-tab')[idx].classList.add('active');
+  document.querySelectorAll('.bottom-nav-btn')[idx].classList.add('active');
+
+  // 非今日页面在手机上隐藏日期导航
+  const dateNav = document.querySelector('.date-nav');
+  if (dateNav) dateNav.style.display = (name === 'today') ? '' : 'none';
 
   if (name === 'today') renderToday();
   else if (name === 'week') renderWeek();
@@ -1148,6 +1271,14 @@ function showPage(name) {
   else if (name === 'year') renderYear();
   else if (name === 'settings') renderSettings();
 }
+
+// 检测手机，显示底部导航
+function checkMobile() {
+  const isMobile = window.innerWidth <= 640;
+  const bn = document.getElementById('bottom-nav');
+  if (bn) bn.style.display = isMobile ? 'flex' : 'none';
+}
+window.addEventListener('resize', checkMobile);
 
 function changeDay(delta) {
   currentDate.setDate(currentDate.getDate() + delta);
@@ -1209,6 +1340,7 @@ function escHtml(s) {
 // Init
 updateDateDisplay();
 renderToday();
+checkMobile();
 
 // Keyboard shortcuts
 document.addEventListener('keydown', e => {
@@ -1222,8 +1354,6 @@ document.addEventListener('keydown', e => {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
-      .then(r => console.log('SW registered:', r.scope))
-      .catch(e => console.log('SW error:', e))
   })
 }
 </script>
