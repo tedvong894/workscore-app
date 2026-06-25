@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
+<!-- saved from url=(0044)file:///Users/tedwong/Downloads/index_1.html -->
+<html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="工作评分">
 <meta name="theme-color" content="#2d6a4f">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="file:///Users/tedwong/Downloads/manifest.json">
+<link rel="apple-touch-icon" href="file:///Users/tedwong/Downloads/icon-192.png">
 <title>工作评分系统</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="./index_files/chart.umd.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -536,34 +536,34 @@
 <header class="app-header">
   <div class="app-title">📊 工作评分</div>
   <nav class="nav-tabs">
-    <button class="nav-tab active" onclick="showPage('today')">今日</button>
-    <button class="nav-tab" onclick="showPage('week')">本周</button>
-    <button class="nav-tab" onclick="showPage('month')">本月</button>
-    <button class="nav-tab" onclick="showPage('year')">全年</button>
-    <button class="nav-tab" onclick="showPage('settings')">模板</button>
+    <button class="nav-tab active" onclick="showPage(&#39;today&#39;)">今日</button>
+    <button class="nav-tab" onclick="showPage(&#39;week&#39;)">本周</button>
+    <button class="nav-tab" onclick="showPage(&#39;month&#39;)">本月</button>
+    <button class="nav-tab" onclick="showPage(&#39;year&#39;)">全年</button>
+    <button class="nav-tab" onclick="showPage(&#39;settings&#39;)">模板</button>
   </nav>
   <div class="date-nav">
     <button onclick="changeDay(-1)">‹</button>
-    <span id="date-display"></span>
+    <span id="date-display">2026年6月25日 （今天）</span>
     <button onclick="changeDay(1)">›</button>
   </div>
 </header>
 
 <!-- 手机底部导航 -->
 <nav class="bottom-nav" id="bottom-nav" style="display:none">
-  <button class="bottom-nav-btn active" onclick="showPage('today')">
+  <button class="bottom-nav-btn active" onclick="showPage(&#39;today&#39;)">
     <span class="icon">📋</span><span>今日</span>
   </button>
-  <button class="bottom-nav-btn" onclick="showPage('week')">
+  <button class="bottom-nav-btn" onclick="showPage(&#39;week&#39;)">
     <span class="icon">📈</span><span>本周</span>
   </button>
-  <button class="bottom-nav-btn" onclick="showPage('month')">
+  <button class="bottom-nav-btn" onclick="showPage(&#39;month&#39;)">
     <span class="icon">📅</span><span>本月</span>
   </button>
-  <button class="bottom-nav-btn" onclick="showPage('year')">
+  <button class="bottom-nav-btn" onclick="showPage(&#39;year&#39;)">
     <span class="icon">🗓</span><span>全年</span>
   </button>
-  <button class="bottom-nav-btn" onclick="showPage('settings')">
+  <button class="bottom-nav-btn" onclick="showPage(&#39;settings&#39;)">
     <span class="icon">⚙️</span><span>模板</span>
   </button>
 </nav>
@@ -576,10 +576,10 @@
       <div>
         <div class="card">
           <div class="card-title">今日事项 &amp; 评分</div>
-          <div id="task-list"></div>
+          <div id="task-list"><div class="empty-state">还没有事项，请添加或套用模板</div></div>
           <div class="add-task-form">
-            <input class="form-input" id="new-task-name" placeholder="事项名称" />
-            <input class="form-input form-input-sm" id="new-task-weight" type="number" min="1" max="100" placeholder="权重%" />
+            <input class="form-input" id="new-task-name" placeholder="事项名称">
+            <input class="form-input form-input-sm" id="new-task-weight" type="number" min="1" max="100" placeholder="权重%">
             <button class="btn-add" onclick="addTask()">+ 添加</button>
           </div>
           <div class="field-hint">权重 = 该事项占总分的比例，所有事项权重之和建议≤100</div>
@@ -588,8 +588,7 @@
 
         <div class="card mt1">
           <div class="card-title">今日备注</div>
-          <textarea id="day-note" class="form-input" rows="3" placeholder="记录今天的工作状态、心得…" style="resize:vertical; line-height:1.5"
-            oninput="saveNote()"></textarea>
+          <textarea id="day-note" class="form-input" rows="3" placeholder="记录今天的工作状态、心得…" style="resize:vertical; line-height:1.5" oninput="saveNote()"></textarea>
         </div>
       </div>
 
@@ -599,10 +598,8 @@
           <div class="score-ring-wrap">
             <div class="score-ring">
               <svg width="120" height="120" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="50" fill="none" stroke="#e8e8e4" stroke-width="10"/>
-                <circle id="ring-fill" cx="60" cy="60" r="50" fill="none" stroke="#2d6a4f"
-                  stroke-width="10" stroke-linecap="round"
-                  stroke-dasharray="314" stroke-dashoffset="314"/>
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#e8e8e4" stroke-width="10"></circle>
+                <circle id="ring-fill" cx="60" cy="60" r="50" fill="none" stroke="#2d6a4f" stroke-width="10" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="314" style="stroke-dashoffset: 314; stroke: rgb(192, 57, 43);"></circle>
               </svg>
               <div class="score-ring-num">
                 <span class="score-big" id="total-score">0</span>
@@ -622,7 +619,7 @@
         <div class="card mt1">
           <div class="card-title">权重分配</div>
           <div style="position:relative;height:180px;">
-            <canvas id="weightChart" role="img" aria-label="权重分配饼图"></canvas>
+            <canvas id="weightChart" role="img" aria-label="权重分配饼图" style="display: none;"></canvas>
           </div>
         </div>
 
@@ -701,24 +698,21 @@
         <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">添加常用事项到模板，切换日期时可一键套用。</p>
         <div id="template-list"></div>
         <div class="add-task-form" style="margin-top:0.75rem">
-          <input class="form-input" id="tmpl-name" placeholder="事项名称" />
-          <input class="form-input form-input-sm" id="tmpl-weight" type="number" min="1" max="100" placeholder="权重%" />
+          <input class="form-input" id="tmpl-name" placeholder="事项名称">
+          <input class="form-input form-input-sm" id="tmpl-weight" type="number" min="1" max="100" placeholder="权重%">
           <button class="btn-add" onclick="addTemplate()">+ 加入</button>
         </div>
-        <button class="btn-add" style="margin-top:1rem;width:100%;background:var(--surface2);color:var(--text);border:0.5px solid var(--border2)"
-          onclick="applyTemplate()">将模板应用到今日</button>
+        <button class="btn-add" style="margin-top:1rem;width:100%;background:var(--surface2);color:var(--text);border:0.5px solid var(--border2)" onclick="applyTemplate()">将模板应用到今日</button>
       </div>
       <div class="card">
         <div class="card-title">数据管理</div>
         <div style="display:flex;flex-direction:column;gap:10px;margin-top:0.5rem">
-          <button class="btn-add" style="background:var(--accent-light);color:var(--accent2);width:100%"
-            onclick="exportData()">📤 导出数据（JSON）</button>
+          <button class="btn-add" style="background:var(--accent-light);color:var(--accent2);width:100%" onclick="exportData()">📤 导出数据（JSON）</button>
           <label class="btn-add" style="background:var(--surface2);color:var(--text);border:0.5px solid var(--border2);width:100%;cursor:pointer;display:block;text-align:center">
             📥 导入数据（JSON）
             <input type="file" accept=".json" style="display:none" onchange="importData(event)">
           </label>
-          <button class="btn-add" style="background:#fde8e8;color:var(--danger);width:100%;margin-top:0.5rem"
-            onclick="clearAllData()">🗑 清除所有数据</button>
+          <button class="btn-add" style="background:#fde8e8;color:var(--danger);width:100%;margin-top:0.5rem" onclick="clearAllData()">🗑 清除所有数据</button>
         </div>
         <div class="card mt1" style="background:var(--surface2)">
           <div class="card-title">使用说明</div>
@@ -817,7 +811,7 @@ async function cloudSaveDayData(dk, dayData) {
     note: dayData.note || ''
   }
   try {
-    const res = await fetch(SUPABASE_URL + '/rest/v1/scores', {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/scores?on_conflict=user_id,date_key', {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_KEY,
@@ -1472,5 +1466,6 @@ if ('serviceWorker' in navigator) {
   })
 }
 </script>
-</body>
-</html>
+
+
+<div id="sync-status" style="position: fixed; top: 56px; left: 50%; transform: translateX(-50%); background: rgb(45, 106, 79); color: rgb(255, 255, 255); padding: 5px 16px; border-radius: 20px; font-size: 12px; z-index: 999; transition: opacity 0.4s; pointer-events: none; opacity: 0;">数据已加载 ✓</div></body></html>
