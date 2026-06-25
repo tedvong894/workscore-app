@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="工作评分">
+<meta name="theme-color" content="#2d6a4f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>工作评分系统</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #f0eeea;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --text: #1a1a18;
+    --text2: #6b6a66;
+    --text3: #999894;
+    --accent: #2d6a4f;
+    --accent-light: #e8f5ee;
+    --accent2: #1b4332;
+    --danger: #c0392b;
+    --warning: #e67e22;
+    --gold: #d4a017;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18;
+      --surface: #242422;
+      --surface2: #2e2e2b;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.18);
+      --text: #f0eeea;
+      --text2: #b0aea8;
+      --text3: #7a7872;
+      --accent: #52b788;
+      --accent-light: #1b3a2e;
+      --accent2: #95d5b2;
+    }
+  }
+
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .app-header {
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .app-title {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  .nav-tabs {
+    display: flex;
+    gap: 4px;
+  }
+
+  .nav-tab {
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  .nav-tab:hover { background: var(--surface2); color: var(--text); }
+  .nav-tab.active { background: var(--accent); color: #fff; font-weight: 500; }
+
+  .date-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text2);
+  }
+
+  .date-nav button {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 0.5px solid var(--border2);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .date-nav button:hover { background: var(--surface2); }
+
+  .main { max-width: 900px; margin: 0 auto; padding: 1.5rem 1.5rem; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Today view */
+  .today-grid {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 0.5px solid var(--border);
+    padding: 1.25rem;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
+  }
+
+  .score-ring-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem 0 1rem;
+  }
+
+  .score-ring {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin-bottom: 0.75rem;
+  }
+
+  .score-ring svg { transform: rotate(-90deg); }
+
+  .score-ring-num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .score-big { font-size: 32px; font-weight: 700; letter-spacing: -1px; }
+  .score-max { font-size: 12px; color: var(--text3); margin-top: -4px; }
+
+  .score-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text2);
+  }
+
+  .score-bar-wrap {
+    width: 100%;
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    margin: 0.75rem 0 0.25rem;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--accent);
+    transition: width 0.4s ease;
+  }
+
+  /* Task list */
+  .task-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  .task-item:last-child { border-bottom: none; }
+
+  .task-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .task-name {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .task-weight {
+    font-size: 12px;
+    color: var(--text3);
+    min-width: 36px;
+    text-align: right;
+  }
+
+  .task-score-input {
+    width: 52px;
+    border: 0.5px solid var(--border2);
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 13px;
+    text-align: center;
+    background: var(--surface2);
+    color: var(--text);
+    font-family: inherit;
+  }
+
+  .task-score-input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .task-del {
+    width: 22px; height: 22px;
+    border: none;
+    background: none;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px;
+  }
+
+  .task-del:hover { background: #fee; color: var(--danger); }
+
+  /* Add task form */
+  .add-task-form {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 8px;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 0.5px solid var(--border);
+  }
+
+  .form-input {
+    border: 0.5px solid var(--border2);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 14px;
+    background: var(--surface2);
+    color: var(--text);
+    font-family: inherit;
+    width: 100%;
+  }
+
+  .form-input:focus { outline: none; border-color: var(--accent); }
+
+  .form-input-sm {
+    width: 68px;
+    text-align: center;
+  }
+
+  .btn-add {
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .btn-add:hover { opacity: 0.88; }
+
+  .field-hint { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+  /* Chart containers */
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+  }
+
+  /* Week grid */
+  .week-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-bottom: 1.25rem;
+  }
+
+  .week-day {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 10px 6px;
+    text-align: center;
+    border: 0.5px solid var(--border);
+  }
+
+  .week-day.today { border-color: var(--accent); background: var(--accent-light); }
+
+  .wd-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+  .wd-score { font-size: 20px; font-weight: 600; }
+  .wd-score.good { color: var(--accent); }
+  .wd-score.mid { color: var(--warning); }
+  .wd-score.low { color: var(--danger); }
+  .wd-score.empty { color: var(--text3); font-size: 14px; font-weight: 400; }
+
+  /* Metric cards */
+  .metric-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 1rem;
+  }
+
+  .metric-card {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    border: 0.5px solid var(--border);
+  }
+
+  .metric-label { font-size: 12px; color: var(--text3); margin-bottom: 6px; }
+  .metric-val { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
+  .metric-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+  /* Month heatmap */
+  .heatmap {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+  }
+
+  .hm-cell {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: default;
+    position: relative;
+  }
+
+  .hm-day-label {
+    font-size: 11px;
+    color: var(--text3);
+    text-align: center;
+    padding-bottom: 4px;
+  }
+
+  .hm-cell[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text);
+    color: var(--surface);
+    font-size: 11px;
+    padding: 3px 7px;
+    border-radius: 5px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .section-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text);
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  .mt1 { margin-top: 1rem; }
+  .mt15 { margin-top: 1.5rem; }
+
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text3);
+    font-size: 14px;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  .badge-great { background: #e8f5ee; color: #1b4332; }
+  .badge-good { background: #e8f0fe; color: #1a3a6b; }
+  .badge-mid { background: #fef3e2; color: #7a4a00; }
+  .badge-low { background: #fde8e8; color: #7a1f1f; }
+
+  @media (prefers-color-scheme: dark) {
+    .badge-great { background: #1b3a2e; color: #95d5b2; }
+    .badge-good { background: #1a2a4a; color: #93b4f0; }
+    .badge-mid { background: #3a2800; color: #f0c060; }
+    .badge-low { background: #3a1a1a; color: #f09090; }
+  }
+
+  /* ======= 手机适配 ======= */
+  @media (max-width: 640px) {
+
+    /* Header：标题隐藏，导航移到底部 */
+    .app-header {
+      padding: 0 0.75rem;
+      height: 48px;
+      justify-content: space-between;
+    }
+
+    .app-title { display: none; }
+
+    .nav-tabs { display: none; } /* 移到底部 */
+
+    .date-nav { font-size: 13px; gap: 6px; flex: 1; justify-content: center; }
+    .date-nav span { white-space: nowrap; }
+
+    /* 底部导航栏 */
+    body { padding-bottom: 60px; }
+
+    body::after {
+      content: '';
+      display: block;
+      height: 60px;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 60px;
+      background: var(--surface);
+      border-top: 0.5px solid var(--border);
+      display: flex;
+      z-index: 200;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .bottom-nav-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      border: none;
+      background: none;
+      color: var(--text3);
+      font-size: 10px;
+      font-family: inherit;
+      cursor: pointer;
+      padding: 6px 0;
+    }
+
+    .bottom-nav-btn .icon { font-size: 20px; line-height: 1; }
+    .bottom-nav-btn.active { color: var(--accent); }
+
+    /* 主内容区 */
+    .main { padding: 0.75rem 0.75rem; }
+
+    /* 今日：两栏 → 单栏 */
+    .today-grid {
+      grid-template-columns: 1fr;
+    }
+
+    /* 总分卡片横向排列（环形图+评分说明并排） */
+    .score-ring-wrap { padding: 0.5rem 0 0.5rem; }
+
+    /* 两列 → 单列 */
+    .two-col { grid-template-columns: 1fr; }
+
+    /* 统计数字：4列 → 2列 */
+    .metric-row { grid-template-columns: repeat(2, 1fr); }
+
+    /* 本周7格：字体缩小 */
+    .week-days { gap: 4px; }
+    .wd-label { font-size: 10px; }
+    .wd-score { font-size: 16px; }
+
+    /* 输入框更大更易点击 */
+    .form-input { font-size: 16px; padding: 10px 12px; } /* 16px防止iOS自动缩放 */
+    .task-score-input { font-size: 16px; width: 58px; padding: 6px 4px; }
+    .btn-add { padding: 10px 14px; font-size: 15px; }
+
+    /* 删除按钮更大 */
+    .task-del { width: 32px; height: 32px; font-size: 20px; }
+
+    /* 卡片间距收紧 */
+    .card { padding: 1rem; }
+    .mt1 { margin-top: 0.75rem; }
+
+    /* 图表高度手机上略低 */
+    .chart-wrap canvas { max-height: 200px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-title">📊 工作评分</div>
+  <nav class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('today')">今日</button>
+    <button class="nav-tab" onclick="showPage('week')">本周</button>
+    <button class="nav-tab" onclick="showPage('month')">本月</button>
+    <button class="nav-tab" onclick="showPage('year')">全年</button>
+    <button class="nav-tab" onclick="showPage('settings')">模板</button>
+  </nav>
+  <div class="date-nav">
+    <button onclick="changeDay(-1)">‹</button>
+    <span id="date-display"></span>
+    <button onclick="changeDay(1)">›</button>
+  </div>
+</header>
+
+<!-- 手机底部导航 -->
+<nav class="bottom-nav" id="bottom-nav" style="display:none">
+  <button class="bottom-nav-btn active" onclick="showPage('today')">
+    <span class="icon">📋</span><span>今日</span>
+  </button>
+  <button class="bottom-nav-btn" onclick="showPage('week')">
+    <span class="icon">📈</span><span>本周</span>
+  </button>
+  <button class="bottom-nav-btn" onclick="showPage('month')">
+    <span class="icon">📅</span><span>本月</span>
+  </button>
+  <button class="bottom-nav-btn" onclick="showPage('year')">
+    <span class="icon">🗓</span><span>全年</span>
+  </button>
+  <button class="bottom-nav-btn" onclick="showPage('settings')">
+    <span class="icon">⚙️</span><span>模板</span>
+  </button>
+</nav>
+
+<main class="main">
+
+  <!-- TODAY -->
+  <div class="page active" id="page-today">
+    <div class="today-grid">
+      <div>
+        <div class="card">
+          <div class="card-title">今日事项 &amp; 评分</div>
+          <div id="task-list"></div>
+          <div class="add-task-form">
+            <input class="form-input" id="new-task-name" placeholder="事项名称" />
+            <input class="form-input form-input-sm" id="new-task-weight" type="number" min="1" max="100" placeholder="权重%" />
+            <button class="btn-add" onclick="addTask()">+ 添加</button>
+          </div>
+          <div class="field-hint">权重 = 该事项占总分的比例，所有事项权重之和建议≤100</div>
+          <div class="field-hint mt1" style="color:var(--accent)">💡 评分为 0–100，总分 = Σ(权重% × 评分)</div>
+        </div>
+
+        <div class="card mt1">
+          <div class="card-title">今日备注</div>
+          <textarea id="day-note" class="form-input" rows="3" placeholder="记录今天的工作状态、心得…" style="resize:vertical; line-height:1.5"
+            oninput="saveNote()"></textarea>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="card-title">今日总分</div>
+          <div class="score-ring-wrap">
+            <div class="score-ring">
+              <svg width="120" height="120" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#e8e8e4" stroke-width="10"/>
+                <circle id="ring-fill" cx="60" cy="60" r="50" fill="none" stroke="#2d6a4f"
+                  stroke-width="10" stroke-linecap="round"
+                  stroke-dasharray="314" stroke-dashoffset="314"/>
+              </svg>
+              <div class="score-ring-num">
+                <span class="score-big" id="total-score">0</span>
+                <span class="score-max">/100</span>
+              </div>
+            </div>
+            <div class="score-label" id="score-label">暂无数据</div>
+          </div>
+          <div class="score-bar-wrap">
+            <div class="score-bar-fill" id="score-bar" style="width:0%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:3px">
+            <span>0</span><span>50</span><span>100</span>
+          </div>
+        </div>
+
+        <div class="card mt1">
+          <div class="card-title">权重分配</div>
+          <div style="position:relative;height:180px;">
+            <canvas id="weightChart" role="img" aria-label="权重分配饼图"></canvas>
+          </div>
+        </div>
+
+        <div class="card mt1">
+          <div class="card-title">评分说明</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.8">
+            <div>🟢 85–100 &nbsp;优秀</div>
+            <div>🔵 70–84 &nbsp;良好</div>
+            <div>🟡 55–69 &nbsp;一般</div>
+            <div>🔴 0–54 &nbsp;&nbsp;待提升</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEEK -->
+  <div class="page" id="page-week">
+    <div class="card">
+      <div class="card-title">本周每日得分</div>
+      <div class="week-days" id="week-days"></div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="weekChart" role="img" aria-label="本周得分折线图"></canvas>
+      </div>
+    </div>
+    <div class="card mt1">
+      <div class="card-title">本周分析</div>
+      <div id="week-analysis" class="metric-row"></div>
+    </div>
+  </div>
+
+  <!-- MONTH -->
+  <div class="page" id="page-month">
+    <div class="metric-row" id="month-metrics"></div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">月度得分热力图</div>
+        <div class="heatmap" id="month-heatmap-header"></div>
+        <div class="heatmap mt1" id="month-heatmap" style="margin-top:4px"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">按周趋势</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="monthChart" role="img" aria-label="月度按周趋势折线图"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- YEAR -->
+  <div class="page" id="page-year">
+    <div class="metric-row" id="year-metrics"></div>
+    <div class="card mt1">
+      <div class="card-title">全年月度得分</div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="yearChart" role="img" aria-label="全年月度得分柱状图"></canvas>
+      </div>
+    </div>
+    <div class="two-col mt1">
+      <div class="card">
+        <div class="card-title">最佳月份</div>
+        <div id="best-months"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">待改进月份</div>
+        <div id="worst-months"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS / TEMPLATES -->
+  <div class="page" id="page-settings">
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">事项模板</div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">添加常用事项到模板，切换日期时可一键套用。</p>
+        <div id="template-list"></div>
+        <div class="add-task-form" style="margin-top:0.75rem">
+          <input class="form-input" id="tmpl-name" placeholder="事项名称" />
+          <input class="form-input form-input-sm" id="tmpl-weight" type="number" min="1" max="100" placeholder="权重%" />
+          <button class="btn-add" onclick="addTemplate()">+ 加入</button>
+        </div>
+        <button class="btn-add" style="margin-top:1rem;width:100%;background:var(--surface2);color:var(--text);border:0.5px solid var(--border2)"
+          onclick="applyTemplate()">将模板应用到今日</button>
+      </div>
+      <div class="card">
+        <div class="card-title">数据管理</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:0.5rem">
+          <button class="btn-add" style="background:var(--accent-light);color:var(--accent2);width:100%"
+            onclick="exportData()">📤 导出数据（JSON）</button>
+          <label class="btn-add" style="background:var(--surface2);color:var(--text);border:0.5px solid var(--border2);width:100%;cursor:pointer;display:block;text-align:center">
+            📥 导入数据（JSON）
+            <input type="file" accept=".json" style="display:none" onchange="importData(event)">
+          </label>
+          <button class="btn-add" style="background:#fde8e8;color:var(--danger);width:100%;margin-top:0.5rem"
+            onclick="clearAllData()">🗑 清除所有数据</button>
+        </div>
+        <div class="card mt1" style="background:var(--surface2)">
+          <div class="card-title">使用说明</div>
+          <ul style="font-size:13px;color:var(--text2);line-height:2;padding-left:1rem">
+            <li>每日为事项评分（0–100），系统自动计算加权总分</li>
+            <li>总分 = Σ(单项评分 × 权重%)</li>
+            <li>权重之和建议保持100，确保满分可达100</li>
+            <li>可用模板快速填入常用事项</li>
+            <li>数据自动同步到云端，所有设备共享</li>
+            <li>离线时数据保存本地，联网后自动同步</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ---- Supabase 配置 ----
+const SUPABASE_URL = 'https://ykdmkmufpcyyctcencgm.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrZG1rbXVmcGN5eWN0Y2VuY2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMzA2ODksImV4cCI6MjA5NzkwNjY4OX0.EiHgfJvd4k2JcXDJnbjgQN-apok4L3wGL2OJhRmt16I'
+
+// 每个设备/用户有唯一ID，存在localStorage
+function getUserId() {
+  let uid = localStorage.getItem('workScore_uid')
+  if (!uid) {
+    uid = 'user_' + Math.random().toString(36).slice(2) + Date.now().toString(36)
+    localStorage.setItem('workScore_uid', uid)
+  }
+  return uid
+}
+
+const USER_ID = getUserId()
+
+// Supabase REST API 封装
+async function sbFetch(path, options = {}) {
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    ...options,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates',
+      ...(options.headers || {})
+    }
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    console.error('Supabase error:', err)
+    return null
+  }
+  const text = await res.text()
+  return text ? JSON.parse(text) : null
+}
+
+// ---- 同步状态提示 ----
+function showSyncStatus(msg, color = '#2d6a4f') {
+  let el = document.getElementById('sync-status')
+  if (!el) {
+    el = document.createElement('div')
+    el.id = 'sync-status'
+    el.style.cssText = `position:fixed;top:56px;left:50%;transform:translateX(-50%);
+      background:${color};color:#fff;padding:5px 16px;border-radius:20px;
+      font-size:12px;z-index:999;transition:opacity 0.4s;pointer-events:none`
+    document.body.appendChild(el)
+  }
+  el.style.background = color
+  el.textContent = msg
+  el.style.opacity = '1'
+  clearTimeout(el._timer)
+  el._timer = setTimeout(() => { el.style.opacity = '0' }, 2000)
+}
+
+// ---- 本地缓存（离线支持）----
+function getData() {
+  try { return JSON.parse(localStorage.getItem('workScore_data') || '{}') } catch(e) { return {} }
+}
+function saveData(data) {
+  localStorage.setItem('workScore_data', JSON.stringify(data))
+}
+function getTemplates() {
+  try { return JSON.parse(localStorage.getItem('workScore_templates') || '[]') } catch(e) { return [] }
+}
+function saveTemplates(t) {
+  localStorage.setItem('workScore_templates', JSON.stringify(t))
+}
+
+// ---- 云端读写 ----
+async function cloudSaveDayData(dateKey, dayData) {
+  showSyncStatus('同步中…', '#999')
+  const row = {
+    user_id: USER_ID,
+    date_key: dateKey,
+    tasks: JSON.stringify(dayData.tasks || []),
+    note: dayData.note || ''
+  }
+  const res = await sbFetch('scores?on_conflict=user_id,date_key', {
+    method: 'POST',
+    body: JSON.stringify(row),
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
+  })
+  if (res !== null) showSyncStatus('已同步 ✓')
+  else showSyncStatus('同步失败，已保存本地', '#e67e22')
+}
+
+async function cloudLoadAll() {
+  const rows = await sbFetch(`scores?user_id=eq.${USER_ID}&select=date_key,tasks,note`)
+  if (!rows) return
+  const data = {}
+  rows.forEach(r => {
+    try {
+      data[r.date_key] = { tasks: JSON.parse(r.tasks || '[]'), note: r.note || '' }
+    } catch(e) {}
+  })
+  // 合并到本地缓存
+  const local = getData()
+  const merged = { ...local, ...data }
+  saveData(merged)
+  showSyncStatus('数据已加载 ✓')
+}
+
+// ---- 数据读写（本地+云端）----
+const DAYS = ['日','一','二','三','四','五','六'];
+const MONTHS_CN = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+let currentDate = new Date();
+currentDate.setHours(0,0,0,0);
+
+let charts = {};
+
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getDayData(d) {
+  const data = getData();
+  const key = dateKey(d);
+  return data[key] || { tasks: [], note: '' };
+}
+
+function saveDayData(d, dayData) {
+  const data = getData();
+  const key = dateKey(d)
+  data[key] = dayData;
+  saveData(data);
+  cloudSaveDayData(key, dayData) // 同步到云端
+}
+
+function calcScore(tasks) {
+  let total = 0;
+  tasks.forEach(t => {
+    const score = parseFloat(t.score) || 0;
+    const weight = parseFloat(t.weight) || 0;
+    total += (score * weight / 100);
+  });
+  return Math.min(100, Math.round(total * 10) / 10);
+}
+
+function getScoreColor(s) {
+  if (s >= 85) return '#2d6a4f';
+  if (s >= 70) return '#2563eb';
+  if (s >= 55) return '#e67e22';
+  return '#c0392b';
+}
+
+function getScoreLabel(s) {
+  if (s === 0) return '暂无数据';
+  if (s >= 85) return '🟢 优秀';
+  if (s >= 70) return '🔵 良好';
+  if (s >= 55) return '🟡 一般';
+  return '🔴 待提升';
+}
+
+function getScoreClass(s) {
+  if (s >= 85) return 'good';
+  if (s >= 55) return 'mid';
+  return 'low';
+}
+
+// ---- TODAY ----
+function renderToday() {
+  const dayData = getDayData(currentDate);
+  const tasks = dayData.tasks || [];
+
+  const list = document.getElementById('task-list');
+  if (tasks.length === 0) {
+    list.innerHTML = '<div class="empty-state">还没有事项，请添加或套用模板</div>';
+  } else {
+    list.innerHTML = tasks.map((t, i) => `
+      <div class="task-item">
+        <div class="task-dot"></div>
+        <span class="task-name">${escHtml(t.name)}</span>
+        <span class="task-weight">×${t.weight}%</span>
+        <input class="task-score-input" type="number" min="0" max="100" value="${t.score || ''}"
+          placeholder="0–100"
+          oninput="updateScore(${i}, this.value)"
+          onblur="clampScore(${i}, this)">
+        <button class="task-del" onclick="deleteTask(${i})" title="删除">×</button>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('day-note').value = dayData.note || '';
+
+  const score = calcScore(tasks);
+  document.getElementById('total-score').textContent = score;
+  document.getElementById('score-label').textContent = getScoreLabel(score);
+  document.getElementById('score-bar').style.width = score + '%';
+
+  const circumference = 314;
+  const offset = circumference - (score / 100) * circumference;
+  const ring = document.getElementById('ring-fill');
+  ring.style.strokeDashoffset = offset;
+  ring.style.stroke = getScoreColor(score);
+
+  renderWeightChart(tasks);
+}
+
+function renderWeightChart(tasks) {
+  const ctx = document.getElementById('weightChart');
+  if (charts.weight) { charts.weight.destroy(); }
+
+  if (!tasks.length) {
+    ctx.style.display = 'none';
+    return;
+  }
+  ctx.style.display = 'block';
+
+  const colors = ['#2d6a4f','#1b7abf','#d4a017','#c0392b','#7b5ea7','#2980b9','#16a085','#d35400'];
+  charts.weight = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: tasks.map(t => t.name),
+      datasets: [{
+        data: tasks.map(t => t.weight),
+        backgroundColor: tasks.map((_, i) => colors[i % colors.length]),
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 8, boxWidth: 10, color: '#888' } },
+        tooltip: { callbacks: { label: (c) => `${c.label}: ${c.raw}%` } }
+      },
+      cutout: '58%'
+    }
+  });
+}
+
+function addTask() {
+  const name = document.getElementById('new-task-name').value.trim();
+  const weight = parseInt(document.getElementById('new-task-weight').value) || 0;
+  if (!name || weight <= 0) {
+    alert('请填写事项名称和权重（1–100）');
+    return;
+  }
+  const dayData = getDayData(currentDate);
+  dayData.tasks.push({ name, weight, score: '' });
+  saveDayData(currentDate, dayData);
+  document.getElementById('new-task-name').value = '';
+  document.getElementById('new-task-weight').value = '';
+  renderToday();
+}
+
+function deleteTask(i) {
+  const dayData = getDayData(currentDate);
+  dayData.tasks.splice(i, 1);
+  saveDayData(currentDate, dayData);
+  renderToday();
+}
+
+function updateScore(i, val) {
+  const dayData = getDayData(currentDate);
+  dayData.tasks[i].score = val;
+  saveDayData(currentDate, dayData);
+  const score = calcScore(dayData.tasks);
+  document.getElementById('total-score').textContent = score;
+  document.getElementById('score-label').textContent = getScoreLabel(score);
+  document.getElementById('score-bar').style.width = score + '%';
+  const offset = 314 - (score / 100) * 314;
+  const ring = document.getElementById('ring-fill');
+  ring.style.strokeDashoffset = offset;
+  ring.style.stroke = getScoreColor(score);
+}
+
+function clampScore(i, el) {
+  let v = parseFloat(el.value);
+  if (isNaN(v)) return;
+  v = Math.max(0, Math.min(100, v));
+  el.value = v;
+  updateScore(i, v);
+}
+
+function saveNote() {
+  const dayData = getDayData(currentDate);
+  dayData.note = document.getElementById('day-note').value;
+  saveDayData(currentDate, dayData);
+}
+
+// ---- WEEK ----
+function getWeekStart(d) {
+  const dt = new Date(d);
+  const day = dt.getDay();
+  dt.setDate(dt.getDate() - day + 1); // Monday
+  dt.setHours(0,0,0,0);
+  return dt;
+}
+
+function renderWeek() {
+  const weekStart = getWeekStart(currentDate);
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const dt = new Date(weekStart);
+    dt.setDate(weekStart.getDate() + i);
+    days.push(dt);
+  }
+
+  const dayData = days.map(d => {
+    const dd = getDayData(d);
+    const score = dd.tasks.length ? calcScore(dd.tasks) : null;
+    return { date: d, score };
+  });
+
+  // Week day cards
+  const container = document.getElementById('week-days');
+  const isToday = (d) => dateKey(d) === dateKey(new Date());
+  container.innerHTML = dayData.map(({date, score}) => `
+    <div class="week-day ${isToday(date) ? 'today' : ''}">
+      <div class="wd-label">周${DAYS[date.getDay()]}<br>${date.getDate()}日</div>
+      <div class="wd-score ${score !== null ? getScoreClass(score) : 'empty'}">
+        ${score !== null ? score : '—'}
+      </div>
+    </div>
+  `).join('');
+
+  // Chart
+  const ctx = document.getElementById('weekChart');
+  if (charts.week) charts.week.destroy();
+  const labels = dayData.map(d => `周${DAYS[d.date.getDay()]}`);
+  const scores = dayData.map(d => d.score);
+  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const lineColor = isDark ? '#52b788' : '#2d6a4f';
+
+  charts.week = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: '得分',
+        data: scores,
+        borderColor: lineColor,
+        backgroundColor: lineColor + '22',
+        fill: true,
+        tension: 0.35,
+        pointRadius: 5,
+        pointBackgroundColor: scores.map(s =>
+          s === null ? 'transparent' :
+          s >= 85 ? '#2d6a4f' : s >= 70 ? '#2563eb' : s >= 55 ? '#e67e22' : '#c0392b'
+        ),
+        spanGaps: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min: 0, max: 100, ticks: { color: isDark ? '#aaa' : '#888', font: { size: 11 } }, grid: { color: isDark ? '#333' : '#eee' } },
+        x: { ticks: { color: isDark ? '#aaa' : '#888', font: { size: 11 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  // Analysis
+  const validScores = dayData.filter(d => d.score !== null).map(d => d.score);
+  const avg = validScores.length ? Math.round(validScores.reduce((a,b) => a+b, 0) / validScores.length) : null;
+  const max = validScores.length ? Math.max(...validScores) : null;
+  const min = validScores.length ? Math.min(...validScores) : null;
+  const daysLogged = validScores.length;
+
+  document.getElementById('week-analysis').innerHTML = `
+    <div class="metric-card"><div class="metric-label">已记录天数</div><div class="metric-val">${daysLogged}<span style="font-size:14px;font-weight:400;color:var(--text3)"> / 7</span></div></div>
+    <div class="metric-card"><div class="metric-label">周平均分</div><div class="metric-val" style="color:${avg ? getScoreColor(avg) : 'inherit'}">${avg ?? '—'}</div></div>
+    <div class="metric-card"><div class="metric-label">最高分</div><div class="metric-val" style="color:#2d6a4f">${max ?? '—'}</div></div>
+    <div class="metric-card"><div class="metric-label">最低分</div><div class="metric-val" style="color:#c0392b">${min ?? '—'}</div></div>
+  `;
+}
+
+// ---- MONTH ----
+function renderMonth() {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+
+  const data = getData();
+  const scores = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayD = data[key];
+    const score = dayD && dayD.tasks && dayD.tasks.length ? calcScore(dayD.tasks) : null;
+    scores.push(score);
+  }
+
+  const valid = scores.filter(s => s !== null);
+  const avg = valid.length ? Math.round(valid.reduce((a,b)=>a+b,0)/valid.length) : null;
+  const best = valid.length ? Math.max(...valid) : null;
+  const worst = valid.length ? Math.min(...valid) : null;
+
+  document.getElementById('month-metrics').innerHTML = `
+    <div class="metric-card"><div class="metric-label">已记录</div><div class="metric-val">${valid.length}<span style="font-size:14px;font-weight:400;color:var(--text3)"> / ${daysInMonth}天</span></div></div>
+    <div class="metric-card"><div class="metric-label">月平均分</div><div class="metric-val" style="color:${avg ? getScoreColor(avg) : 'inherit'}">${avg ?? '—'}</div></div>
+    <div class="metric-card"><div class="metric-label">月最高</div><div class="metric-val" style="color:#2d6a4f">${best ?? '—'}</div></div>
+    <div class="metric-card"><div class="metric-label">月最低</div><div class="metric-val" style="color:#c0392b">${worst ?? '—'}</div></div>
+  `;
+
+  // Heatmap
+  const header = document.getElementById('month-heatmap-header');
+  header.innerHTML = ['一','二','三','四','五','六','日'].map(d => `<div class="hm-day-label">周${d}</div>`).join('');
+
+  const heatmap = document.getElementById('month-heatmap');
+  let cells = '';
+
+  // Offset: first day of month (0=Sun → col 6 in Mon-first grid)
+  const offset = (firstDay === 0 ? 6 : firstDay - 1);
+  for (let i = 0; i < offset; i++) cells += '<div class="hm-cell"></div>';
+
+  scores.forEach((score, idx) => {
+    const day = idx + 1;
+    const today = year === new Date().getFullYear() && month === new Date().getMonth() && day === new Date().getDate();
+    let bg = 'var(--surface2)';
+    let color = 'var(--text3)';
+    if (score !== null) {
+      if (score >= 85) { bg = '#c7f0da'; color = '#1b4332'; }
+      else if (score >= 70) { bg = '#bfdbfe'; color = '#1e3a6b'; }
+      else if (score >= 55) { bg = '#fde68a'; color = '#7a4a00'; }
+      else { bg = '#fecaca'; color = '#7a1f1f'; }
+    }
+    const border = today ? '2px solid #2d6a4f' : '0.5px solid transparent';
+    const title = score !== null ? `${day}日: ${score}分` : `${day}日: 未记录`;
+    cells += `<div class="hm-cell" style="background:${bg};color:${color};border:${border}" title="${title}">${day}</div>`;
+  });
+
+  heatmap.innerHTML = cells;
+
+  // Weekly trend chart
+  const ctx = document.getElementById('monthChart');
+  if (charts.month) charts.month.destroy();
+
+  const weeks = [];
+  let weekScores = [], weekLabel = 1;
+  scores.forEach((s, i) => {
+    weekScores.push(s);
+    const dayOfWeek = new Date(year, month, i+1).getDay();
+    if (dayOfWeek === 0 || i === scores.length - 1) {
+      const v = weekScores.filter(x => x !== null);
+      weeks.push({ label: `第${weekLabel}周`, avg: v.length ? Math.round(v.reduce((a,b)=>a+b,0)/v.length) : null });
+      weekScores = [];
+      weekLabel++;
+    }
+  });
+
+  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  charts.month = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: weeks.map(w => w.label),
+      datasets: [{
+        label: '周均分',
+        data: weeks.map(w => w.avg),
+        borderColor: isDark ? '#52b788' : '#2d6a4f',
+        backgroundColor: (isDark ? '#52b788' : '#2d6a4f') + '22',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 6,
+        spanGaps: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min: 0, max: 100, ticks: { color: isDark ? '#aaa' : '#888', font: { size: 11 } }, grid: { color: isDark ? '#333' : '#eee' } },
+        x: { ticks: { color: isDark ? '#aaa' : '#888', font: { size: 11 } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ---- YEAR ----
+function renderYear() {
+  const year = currentDate.getFullYear();
+  const data = getData();
+  const monthStats = [];
+
+  for (let m = 0; m < 12; m++) {
+    const daysInMonth = new Date(year, m + 1, 0).getDate();
+    let dayScores = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const key = `${year}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const dd = data[key];
+      if (dd && dd.tasks && dd.tasks.length) {
+        dayScores.push(calcScore(dd.tasks));
+      }
+    }
+    const avg = dayScores.length ? Math.round(dayScores.reduce((a,b)=>a+b,0)/dayScores.length) : null;
+    monthStats.push({ month: MONTHS_CN[m], avg, count: dayScores.length });
+  }
+
+  const validMonths = monthStats.filter(m => m.avg !== null);
+  const yearAvg = validMonths.length ? Math.round(validMonths.reduce((a,b)=>a+(b.avg||0),0)/validMonths.length) : null;
+  const bestMonth = validMonths.length ? validMonths.reduce((a,b) => (b.avg||0) > (a.avg||0) ? b : a) : null;
+  const worstMonth = validMonths.length ? validMonths.reduce((a,b) => (b.avg||0) < (a.avg||0) ? b : a) : null;
+  const totalDays = validMonths.reduce((a,b)=>a+b.count,0);
+
+  document.getElementById('year-metrics').innerHTML = `
+    <div class="metric-card"><div class="metric-label">已记录月份</div><div class="metric-val">${validMonths.length}<span style="font-size:14px;font-weight:400;color:var(--text3)"> / 12</span></div></div>
+    <div class="metric-card"><div class="metric-label">年均分</div><div class="metric-val" style="color:${yearAvg ? getScoreColor(yearAvg) : 'inherit'}">${yearAvg ?? '—'}</div></div>
+    <div class="metric-card"><div class="metric-label">最佳月</div><div class="metric-val" style="color:#2d6a4f;font-size:16px">${bestMonth ? bestMonth.month : '—'}</div><div class="metric-sub">${bestMonth ? bestMonth.avg + '分' : ''}</div></div>
+    <div class="metric-card"><div class="metric-label">累计记录</div><div class="metric-val">${totalDays}<span style="font-size:14px;font-weight:400;color:var(--text3)"> 天</span></div></div>
+  `;
+
+  // Year chart
+  const ctx = document.getElementById('yearChart');
+  if (charts.year) charts.year.destroy();
+  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+
+  charts.year = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: monthStats.map(m => m.month),
+      datasets: [{
+        label: '月均分',
+        data: monthStats.map(m => m.avg),
+        backgroundColor: monthStats.map(m =>
+          m.avg === null ? (isDark ? '#333' : '#eee') :
+          m.avg >= 85 ? '#2d6a4f' :
+          m.avg >= 70 ? '#2563eb' :
+          m.avg >= 55 ? '#e67e22' : '#c0392b'
+        ),
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw !== null ? `${c.raw}分` : '未记录' } } },
+      scales: {
+        y: { min: 0, max: 100, ticks: { color: isDark ? '#aaa' : '#888', font: { size: 11 } }, grid: { color: isDark ? '#333' : '#eee' } },
+        x: { ticks: { color: isDark ? '#aaa' : '#888', font: { size: 11 }, autoSkip: false }, grid: { display: false } }
+      }
+    }
+  });
+
+  const sorted = [...validMonths].sort((a,b) => b.avg - a.avg);
+  const topN = sorted.slice(0, 3);
+  const botN = sorted.slice(-3).reverse();
+
+  document.getElementById('best-months').innerHTML = topN.length ?
+    topN.map((m, i) => `<div class="task-item"><span class="task-dot" style="background:${['#d4a017','#aaa','#c96a27'][i]}"></span><span class="task-name">${m.month}</span><span class="task-weight">${m.avg}分</span></div>`).join('') :
+    '<div class="empty-state">暂无数据</div>';
+
+  document.getElementById('worst-months').innerHTML = botN.length ?
+    botN.map(m => `<div class="task-item"><span class="task-dot" style="background:#c0392b"></span><span class="task-name">${m.month}</span><span class="task-weight">${m.avg}分</span></div>`).join('') :
+    '<div class="empty-state">暂无数据</div>';
+}
+
+// ---- SETTINGS ----
+function renderSettings() {
+  const templates = getTemplates();
+  const list = document.getElementById('template-list');
+  if (!templates.length) {
+    list.innerHTML = '<div class="empty-state">还没有模板事项</div>';
+  } else {
+    list.innerHTML = templates.map((t, i) => `
+      <div class="task-item">
+        <div class="task-dot"></div>
+        <span class="task-name">${escHtml(t.name)}</span>
+        <span class="task-weight">${t.weight}%</span>
+        <button class="task-del" onclick="deleteTemplate(${i})">×</button>
+      </div>
+    `).join('');
+  }
+}
+
+function addTemplate() {
+  const name = document.getElementById('tmpl-name').value.trim();
+  const weight = parseInt(document.getElementById('tmpl-weight').value) || 0;
+  if (!name || weight <= 0) { alert('请填写名称和权重'); return; }
+  const t = getTemplates();
+  t.push({ name, weight });
+  saveTemplates(t);
+  document.getElementById('tmpl-name').value = '';
+  document.getElementById('tmpl-weight').value = '';
+  renderSettings();
+}
+
+function deleteTemplate(i) {
+  const t = getTemplates();
+  t.splice(i, 1);
+  saveTemplates(t);
+  renderSettings();
+}
+
+function applyTemplate() {
+  const templates = getTemplates();
+  if (!templates.length) { alert('还没有模板事项'); return; }
+  const dayData = getDayData(currentDate);
+  const existNames = new Set(dayData.tasks.map(t => t.name));
+  templates.forEach(t => {
+    if (!existNames.has(t.name)) {
+      dayData.tasks.push({ name: t.name, weight: t.weight, score: '' });
+    }
+  });
+  saveDayData(currentDate, dayData);
+  showPage('today');
+}
+
+// ---- NAV ----
+const PAGES = ['today','week','month','year','settings'];
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.bottom-nav-btn').forEach(t => t.classList.remove('active'));
+
+  document.getElementById('page-' + name).classList.add('active');
+  const idx = PAGES.indexOf(name);
+  document.querySelectorAll('.nav-tab')[idx].classList.add('active');
+  document.querySelectorAll('.bottom-nav-btn')[idx].classList.add('active');
+
+  // 非今日页面在手机上隐藏日期导航
+  const dateNav = document.querySelector('.date-nav');
+  if (dateNav) dateNav.style.display = (name === 'today') ? '' : 'none';
+
+  if (name === 'today') renderToday();
+  else if (name === 'week') renderWeek();
+  else if (name === 'month') renderMonth();
+  else if (name === 'year') renderYear();
+  else if (name === 'settings') renderSettings();
+}
+
+// 检测手机，显示底部导航
+function checkMobile() {
+  const isMobile = window.innerWidth <= 640;
+  const bn = document.getElementById('bottom-nav');
+  if (bn) bn.style.display = isMobile ? 'flex' : 'none';
+}
+window.addEventListener('resize', checkMobile);
+
+function changeDay(delta) {
+  currentDate.setDate(currentDate.getDate() + delta);
+  updateDateDisplay();
+  const active = document.querySelector('.page.active').id.replace('page-','');
+  showPage(active);
+}
+
+function updateDateDisplay() {
+  const d = currentDate;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((d - today) / 86400000);
+  let label = '';
+  if (diff === 0) label = '（今天）';
+  else if (diff === -1) label = '（昨天）';
+  else if (diff === 1) label = '（明天）';
+  document.getElementById('date-display').textContent =
+    `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${label}`;
+}
+
+// ---- DATA ----
+function exportData() {
+  const data = { tasks: getData(), templates: getTemplates() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `工作评分_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const d = JSON.parse(evt.target.result);
+      if (d.tasks) saveData(d.tasks);
+      if (d.templates) saveTemplates(d.templates);
+      alert('导入成功！');
+      renderToday();
+    } catch (err) { alert('文件格式错误'); }
+  };
+  reader.readAsText(file);
+}
+
+function clearAllData() {
+  if (confirm('确定要清除所有数据吗？此操作不可撤销。')) {
+    localStorage.removeItem('workScore_data');
+    localStorage.removeItem('workScore_templates');
+    renderToday();
+    showSyncStatus('本地数据已清除', '#e67e22')
+  }
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Init
+updateDateDisplay();
+checkMobile();
+
+// 先渲染本地数据，再从云端同步
+renderToday();
+cloudLoadAll().then(() => {
+  // 云端数据加载完后刷新当前页面
+  const active = document.querySelector('.page.active')
+  if (active) {
+    const name = active.id.replace('page-', '')
+    if (name === 'today') renderToday()
+  }
+})
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'ArrowLeft') changeDay(-1);
+  if (e.key === 'ArrowRight') changeDay(1);
+});
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+  })
+}
+</script>
+</body>
+</html>
