@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0044)file:///Users/tedwong/Downloads/index_1.html -->
+<!-- saved from url=(0044)file:///Users/tedwong/Downloads/index_2.html -->
 <html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -713,6 +713,7 @@
             <input type="file" accept=".json" style="display:none" onchange="importData(event)">
           </label>
           <button class="btn-add" style="background:#fde8e8;color:var(--danger);width:100%;margin-top:0.5rem" onclick="clearAllData()">🗑 清除所有数据</button>
+          <button class="btn-add" style="background:#fde8e8;color:var(--danger);width:100%;margin-top:0.5rem" onclick="doLogout()">🚪 退出登录</button>
         </div>
         <div class="card mt1" style="background:var(--surface2)">
           <div class="card-title">使用说明</div>
@@ -736,17 +737,101 @@
 const SUPABASE_URL = 'https://ykdmkmufpcyyctcencgm.supabase.co'
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrZG1rbXVmcGN5eWN0Y2VuY2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMzA2ODksImV4cCI6MjA5NzkwNjY4OX0.EiHgfJvd4k2JcXDJnbjgQN-apok4L3wGL2OJhRmt16I'
 
-// 每个设备/用户有唯一ID，存在localStorage
-function getUserId() {
-  let uid = localStorage.getItem('workScore_uid')
-  if (!uid) {
-    uid = 'user_' + Math.random().toString(36).slice(2) + Date.now().toString(36)
-    localStorage.setItem('workScore_uid', uid)
-  }
-  return uid
+let SESSION = null
+let USER_ID = null
+
+// ---- 登录界面 ----
+function showLoginUI() {
+  if (document.getElementById('login-overlay')) return
+  const overlay = document.createElement('div')
+  overlay.id = 'login-overlay'
+  overlay.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:2rem'
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border-radius:16px;padding:2rem;width:100%;max-width:360px;border:0.5px solid var(--border)">
+      <div style="font-size:32px;text-align:center;margin-bottom:0.5rem">📊</div>
+      <h2 style="text-align:center;font-size:20px;margin-bottom:0.25rem">工作评分系统</h2>
+      <p style="text-align:center;font-size:13px;color:var(--text2);margin-bottom:1.5rem">登录后数据自动跨设备同步</p>
+      <div id="login-error" style="color:#c0392b;font-size:13px;text-align:center;margin-bottom:0.75rem;min-height:20px"></div>
+      <input id="login-email" type="email" placeholder="邮箱" autocomplete="email"
+        style="width:100%;padding:10px 12px;border-radius:8px;border:0.5px solid var(--border2);background:var(--surface2);color:var(--text);font-size:15px;font-family:inherit;margin-bottom:10px;box-sizing:border-box">
+      <input id="login-password" type="password" placeholder="密码（至少6位）"
+        style="width:100%;padding:10px 12px;border-radius:8px;border:0.5px solid var(--border2);background:var(--surface2);color:var(--text);font-size:15px;font-family:inherit;margin-bottom:1rem;box-sizing:border-box">
+      <button onclick="doLogin()" id="btn-login"
+        style="width:100%;padding:12px;border-radius:8px;border:none;background:#2d6a4f;color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;font-family:inherit">登录</button>
+      <button onclick="doSignup()" id="btn-signup"
+        style="width:100%;padding:12px;border-radius:8px;border:0.5px solid var(--border2);background:var(--surface2);color:var(--text);font-size:15px;cursor:pointer;font-family:inherit">注册新账号</button>
+      <p style="text-align:center;font-size:12px;color:var(--text3);margin-top:1rem">同一账号在所有设备上数据共享</p>
+    </div>`
+  document.body.appendChild(overlay)
 }
 
-const USER_ID = getUserId()
+function hideLoginUI() {
+  const el = document.getElementById('login-overlay')
+  if (el) el.remove()
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('login-error')
+  if (el) el.textContent = msg
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim()
+  const password = document.getElementById('login-password').value
+  if (!email || !password) { showLoginError('请填写邮箱和密码'); return }
+  document.getElementById('btn-login').textContent = '登录中…'
+  try {
+    const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    })
+    const data = await res.json()
+    if (data.access_token) { onLoginSuccess(data) }
+    else { document.getElementById('btn-login').textContent = '登录'; showLoginError(data.error_description || '邮箱或密码错误') }
+  } catch(e) { document.getElementById('btn-login').textContent = '登录'; showLoginError('网络错误，请重试') }
+}
+
+async function doSignup() {
+  const email = document.getElementById('login-email').value.trim()
+  const password = document.getElementById('login-password').value
+  if (!email || !password) { showLoginError('请填写邮箱和密码'); return }
+  if (password.length < 6) { showLoginError('密码至少6位'); return }
+  document.getElementById('btn-signup').textContent = '注册中…'
+  try {
+    const res = await fetch(SUPABASE_URL + '/auth/v1/signup', {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    })
+    const data = await res.json()
+    if (data.access_token) { onLoginSuccess(data) }
+    else { document.getElementById('btn-signup').textContent = '注册新账号'; showLoginError('注册失败，该邮箱可能已注册，请直接登录') }
+  } catch(e) { document.getElementById('btn-signup').textContent = '注册新账号'; showLoginError('网络错误，请重试') }
+}
+
+function onLoginSuccess(data) {
+  SESSION = data
+  USER_ID = data.user.id
+  localStorage.setItem('workScore_session', JSON.stringify({ access_token: data.access_token, user_id: USER_ID }))
+  hideLoginUI()
+  showSyncStatus('登录成功 ✓')
+  cloudLoadAll().then(() => renderToday())
+}
+
+function doLogout() {
+  SESSION = null; USER_ID = null
+  localStorage.removeItem('workScore_session')
+  showLoginUI()
+}
+
+function restoreSession() {
+  try {
+    const s = JSON.parse(localStorage.getItem('workScore_session') || 'null')
+    if (s && s.access_token && s.user_id) { SESSION = s; USER_ID = s.user_id; return true }
+  } catch(e) {}
+  return false
+}
 
 // Supabase REST API 封装
 async function sbFetch(path, options = {}) {
@@ -754,9 +839,8 @@ async function sbFetch(path, options = {}) {
     ...options,
     headers: {
       'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Authorization': 'Bearer ' + (SESSION?.access_token || SUPABASE_KEY),
       'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates',
       ...(options.headers || {})
     }
   })
@@ -803,6 +887,7 @@ function saveTemplates(t) {
 
 // ---- 云端读写 ----
 async function cloudSaveDayData(dk, dayData) {
+  if (!USER_ID) return
   showSyncStatus('同步中…', '#999')
   const row = {
     user_id: USER_ID,
@@ -815,7 +900,7 @@ async function cloudSaveDayData(dk, dayData) {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Authorization': 'Bearer ' + (SESSION?.access_token || SUPABASE_KEY),
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates,return=minimal'
       },
@@ -833,6 +918,7 @@ async function cloudSaveDayData(dk, dayData) {
   }
 }
 async function cloudLoadAll() {
+  if (!USER_ID) return
   const rows = await sbFetch(`scores?user_id=eq.${USER_ID}&select=date_key,tasks,note`)
   if (!rows) return
   const data = {}
@@ -1439,17 +1525,14 @@ function escHtml(s) {
 // Init
 updateDateDisplay();
 checkMobile();
-
-// 先渲染本地数据，再从云端同步
 renderToday();
-cloudLoadAll().then(() => {
-  // 云端数据加载完后刷新当前页面
-  const active = document.querySelector('.page.active')
-  if (active) {
-    const name = active.id.replace('page-', '')
-    if (name === 'today') renderToday()
-  }
-})
+
+// 恢复登录状态或显示登录界面
+if (restoreSession()) {
+  cloudLoadAll().then(() => renderToday())
+} else {
+  showLoginUI()
+}
 
 // Keyboard shortcuts
 document.addEventListener('keydown', e => {
@@ -1457,7 +1540,18 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft') changeDay(-1);
   if (e.key === 'ArrowRight') changeDay(1);
 });
-</script>
+</script><div id="login-overlay" style="position: fixed; inset: 0px; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+    <div style="background:var(--surface);border-radius:16px;padding:2rem;width:100%;max-width:360px;border:0.5px solid var(--border)">
+      <div style="font-size:32px;text-align:center;margin-bottom:0.5rem">📊</div>
+      <h2 style="text-align:center;font-size:20px;margin-bottom:0.25rem">工作评分系统</h2>
+      <p style="text-align:center;font-size:13px;color:var(--text2);margin-bottom:1.5rem">登录后数据自动跨设备同步</p>
+      <div id="login-error" style="color:#c0392b;font-size:13px;text-align:center;margin-bottom:0.75rem;min-height:20px"></div>
+      <input id="login-email" type="email" placeholder="邮箱" autocomplete="email" style="width:100%;padding:10px 12px;border-radius:8px;border:0.5px solid var(--border2);background:var(--surface2);color:var(--text);font-size:15px;font-family:inherit;margin-bottom:10px;box-sizing:border-box">
+      <input id="login-password" type="password" placeholder="密码（至少6位）" style="width:100%;padding:10px 12px;border-radius:8px;border:0.5px solid var(--border2);background:var(--surface2);color:var(--text);font-size:15px;font-family:inherit;margin-bottom:1rem;box-sizing:border-box">
+      <button onclick="doLogin()" id="btn-login" style="width:100%;padding:12px;border-radius:8px;border:none;background:#2d6a4f;color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;font-family:inherit">登录</button>
+      <button onclick="doSignup()" id="btn-signup" style="width:100%;padding:12px;border-radius:8px;border:0.5px solid var(--border2);background:var(--surface2);color:var(--text);font-size:15px;cursor:pointer;font-family:inherit">注册新账号</button>
+      <p style="text-align:center;font-size:12px;color:var(--text3);margin-top:1rem">同一账号在所有设备上数据共享</p>
+    </div></div>
 
 <script>
 if ('serviceWorker' in navigator) {
@@ -1468,4 +1562,4 @@ if ('serviceWorker' in navigator) {
 </script>
 
 
-<div id="sync-status" style="position: fixed; top: 56px; left: 50%; transform: translateX(-50%); background: rgb(45, 106, 79); color: rgb(255, 255, 255); padding: 5px 16px; border-radius: 20px; font-size: 12px; z-index: 999; transition: opacity 0.4s; pointer-events: none; opacity: 0;">数据已加载 ✓</div></body></html>
+</body></html>
