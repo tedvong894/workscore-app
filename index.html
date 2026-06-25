@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="工作评分">
+<meta name="apple-mobile-web-app-title" content="评分系统">
 <meta name="theme-color" content="#2d6a4f">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>工作评分系统</title>
+<title>评分系统</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -534,7 +534,7 @@
 <body>
 
 <header class="app-header">
-  <div class="app-title">📊 工作评分</div>
+  <div class="app-title">📊 评分系统</div>
   <nav class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('today')">今日</button>
     <button class="nav-tab" onclick="showPage('week')">本周</button>
@@ -758,7 +758,7 @@ function showLoginUI() {
   overlay.innerHTML = `
     <div style="background:var(--surface);border-radius:16px;padding:2rem;width:100%;max-width:360px;border:0.5px solid var(--border)">
       <div style="font-size:32px;text-align:center;margin-bottom:0.5rem">📊</div>
-      <h2 style="text-align:center;font-size:20px;margin-bottom:0.25rem">工作评分系统</h2>
+      <h2 style="text-align:center;font-size:20px;margin-bottom:0.25rem">评分系统</h2>
       <p style="text-align:center;font-size:13px;color:var(--text2);margin-bottom:1.5rem">登录后数据自动跨设备同步</p>
       <div id="login-error" style="color:#c0392b;font-size:13px;text-align:center;margin-bottom:0.75rem;min-height:20px"></div>
       <input id="login-email" type="email" placeholder="邮箱" autocomplete="email"
@@ -830,7 +830,11 @@ async function doSignup() {
 function onLoginSuccess(data) {
   SESSION = data
   USER_ID = data.user.id
-  localStorage.setItem('workScore_session', JSON.stringify({ access_token: data.access_token, user_id: USER_ID }))
+  localStorage.setItem('workScore_session', JSON.stringify({
+    access_token: data.access_token,
+    refresh_token: data.refresh_token || '',
+    user_id: USER_ID
+  }))
   hideLoginUI()
   showSyncStatus('登录成功 ✓')
   cloudLoadAll().then(() => renderToday())
@@ -850,8 +854,34 @@ function restoreSession() {
   return false
 }
 
-// Supabase REST API 封装
-async function sbFetch(path, options = {}) {
+// 自动刷新 token
+async function refreshToken() {
+  try {
+    const s = JSON.parse(localStorage.getItem('workScore_session') || 'null')
+    if (!s || !s.refresh_token) { showLoginUI(); return false }
+    const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: s.refresh_token })
+    })
+    const data = await res.json()
+    if (data.access_token) {
+      SESSION = data
+      USER_ID = data.user.id
+      localStorage.setItem('workScore_session', JSON.stringify({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token || s.refresh_token,
+        user_id: USER_ID
+      }))
+      return true
+    } else {
+      showLoginUI(); return false
+    }
+  } catch(e) { return false }
+}
+
+// Supabase REST API 封装（自动刷新 token）
+async function sbFetch(path, options = {}, retry = true) {
   const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
     ...options,
     headers: {
@@ -861,6 +891,11 @@ async function sbFetch(path, options = {}) {
       ...(options.headers || {})
     }
   })
+  if (res.status === 401 && retry) {
+    const ok = await refreshToken()
+    if (ok) return sbFetch(path, options, false)
+    return null
+  }
   if (!res.ok) {
     const err = await res.text()
     console.error('Supabase error:', err)
@@ -903,7 +938,7 @@ function saveTemplates(t) {
 }
 
 // ---- 云端读写 ----
-async function cloudSaveDayData(dk, dayData) {
+async function cloudSaveDayData(dk, dayData, retry = true) {
   if (!USER_ID) return
   showSyncStatus('同步中…', '#999')
   const row = {
@@ -923,6 +958,11 @@ async function cloudSaveDayData(dk, dayData) {
       },
       body: JSON.stringify(row)
     })
+    if (res.status === 401 && retry) {
+      const ok = await refreshToken()
+      if (ok) { cloudSaveDayData(dk, dayData, false); return }
+      showSyncStatus('登录已过期，请重新登录', '#e67e22'); showLoginUI(); return
+    }
     if (res.ok) showSyncStatus('已同步 ✓')
     else {
       const err = await res.text()

@@ -1,11 +1,11 @@
 {
-  "name": "工作评分系统",
-  "short_name": "工作评分",
-  "description": "每日工作事项加权评分，量化分析工作状态",
+  "name": "评分系统",
+  "short_name": "评分系统",
+  "description": "每日事项加权评分，量化分析工作状态",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f5f4f0",
-  "theme_color": "#2d6a4f",
+  "background_color": "#1a5fa8",
+  "theme_color": "#1a5fa8",
   "orientation": "any",
   "lang": "zh-CN",
   "icons": [
@@ -22,6 +22,5 @@
       "purpose": "any maskable"
     }
   ],
-  "screenshots": [],
   "categories": ["productivity"]
 }
