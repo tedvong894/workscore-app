@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0044)file:///Users/tedwong/Downloads/index_5.html -->
+<!-- saved from url=(0044)file:///Users/tedwong/Downloads/index_1.html -->
 <html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -454,18 +454,18 @@
     .date-nav span { white-space: nowrap; }
 
     /* 底部导航栏 */
-    body { padding-bottom: 90px; }
+    body { padding-bottom: 100px; }
 
     .bottom-nav {
       position: fixed;
       bottom: 0; left: 0; right: 0;
-      height: 90px;
+      height: 100px;
       background: var(--surface);
       border-top: 0.5px solid var(--border);
       display: flex;
       z-index: 200;
       padding-bottom: env(safe-area-inset-bottom);
-      box-shadow: 0 -6px 24px rgba(0,0,0,0.10);
+      box-shadow: 0 -8px 30px rgba(0,0,0,0.10);
     }
 
     .bottom-nav-btn {
@@ -474,47 +474,57 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 7px;
       border: none;
       background: none;
       color: var(--text3);
       font-family: inherit;
       cursor: pointer;
-      padding: 10px 0 6px;
-      transition: color 0.2s ease;
+      padding: 12px 0 8px;
       position: relative;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .bottom-nav-btn .icon {
-      font-size: 28px;
+      font-size: 30px;
       line-height: 1;
-      transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
       display: block;
+      transition: transform 0.35s cubic-bezier(0.34,1.8,0.64,1), opacity 0.2s ease;
     }
 
     .bottom-nav-btn .label {
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 600;
       letter-spacing: 0.3px;
-      transition: color 0.2s ease;
+      transition: color 0.2s ease, opacity 0.2s ease;
+      opacity: 0.55;
     }
 
+    /* 顶部绿色胶囊指示条 */
     .bottom-nav-btn::before {
       content: '';
       position: absolute;
-      top: 6px;
+      top: 0;
       left: 50%;
       transform: translateX(-50%) scaleX(0);
-      width: 36px;
+      width: 40px;
       height: 3px;
-      border-radius: 2px;
+      border-radius: 0 0 3px 3px;
       background: var(--accent);
-      transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+      transition: transform 0.35s cubic-bezier(0.34,1.8,0.64,1);
     }
 
     .bottom-nav-btn.active { color: var(--accent); }
-    .bottom-nav-btn.active .icon { transform: translateY(-3px) scale(1.15); }
-    .bottom-nav-btn.active::before { transform: translateX(-50%) scaleX(1); }
+    .bottom-nav-btn.active .icon {
+      transform: translateY(-4px) scale(1.2);
+    }
+    .bottom-nav-btn.active .label {
+      opacity: 1;
+      color: var(--accent);
+    }
+    .bottom-nav-btn.active::before {
+      transform: translateX(-50%) scaleX(1);
+    }
 
     /* 主内容区 */
     .main { padding: 0.75rem 0.75rem; }
@@ -609,11 +619,6 @@
           <div class="field-hint">权重 = 该事项占总分的比例，所有事项权重之和建议≤100</div>
           <div class="field-hint mt1" style="color:var(--accent)">💡 评分为 0–100，总分 = Σ(权重% × 评分)</div>
         </div>
-
-        <div class="card mt1">
-          <div class="card-title">今日备注</div>
-          <textarea id="day-note" class="form-input" rows="3" placeholder="记录今天的工作状态、心得…" style="resize:vertical; line-height:1.5" oninput="saveNote()"></textarea>
-        </div>
       </div>
 
       <div>
@@ -640,6 +645,12 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- 备注放到最下面，独立全宽 -->
+    <div class="card mt1">
+      <div class="card-title">今日备注</div>
+      <textarea id="day-note" class="form-input" rows="3" placeholder="记录今天的工作状态、心得…" style="resize:vertical; line-height:1.5" oninput="saveNote()"></textarea>
     </div>
   </div>
 
