@@ -1,4 +1,4 @@
-const CACHE = 'workscore-v1'
+const CACHE = 'workscore-v2'
 const ASSETS = [
   './',
   './index.html',
@@ -23,6 +23,12 @@ self.addEventListener('activate', e => {
 })
 
 self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url)
+  // 不缓存 Supabase 请求，直接走网络
+  if (url.hostname.includes('supabase.co')) {
+    e.respondWith(fetch(e.request))
+    return
+  }
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached
