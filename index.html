@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0044)file:///Users/tedwong/Downloads/index_4.html -->
+<!-- saved from url=(0044)file:///Users/tedwong/Downloads/index_5.html -->
 <html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -454,18 +454,18 @@
     .date-nav span { white-space: nowrap; }
 
     /* 底部导航栏 */
-    body { padding-bottom: 80px; }
+    body { padding-bottom: 90px; }
 
     .bottom-nav {
       position: fixed;
       bottom: 0; left: 0; right: 0;
-      height: 80px;
+      height: 90px;
       background: var(--surface);
       border-top: 0.5px solid var(--border);
       display: flex;
       z-index: 200;
       padding-bottom: env(safe-area-inset-bottom);
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+      box-shadow: 0 -6px 24px rgba(0,0,0,0.10);
     }
 
     .bottom-nav-btn {
@@ -474,36 +474,47 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 5px;
+      gap: 6px;
       border: none;
       background: none;
       color: var(--text3);
-      font-size: 11px;
       font-family: inherit;
       cursor: pointer;
-      padding: 8px 0 4px;
-      transition: color 0.15s;
+      padding: 10px 0 6px;
+      transition: color 0.2s ease;
+      position: relative;
     }
 
     .bottom-nav-btn .icon {
-      font-size: 26px;
+      font-size: 28px;
       line-height: 1;
-      transition: transform 0.15s;
-    }
-
-    .bottom-nav-btn.active {
-      color: var(--accent);
-    }
-
-    .bottom-nav-btn.active .icon {
-      transform: translateY(-2px);
+      transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+      display: block;
     }
 
     .bottom-nav-btn .label {
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 500;
-      letter-spacing: 0.2px;
+      letter-spacing: 0.3px;
+      transition: color 0.2s ease;
     }
+
+    .bottom-nav-btn::before {
+      content: '';
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%) scaleX(0);
+      width: 36px;
+      height: 3px;
+      border-radius: 2px;
+      background: var(--accent);
+      transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    .bottom-nav-btn.active { color: var(--accent); }
+    .bottom-nav-btn.active .icon { transform: translateY(-3px) scale(1.15); }
+    .bottom-nav-btn.active::before { transform: translateX(-50%) scaleX(1); }
 
     /* 主内容区 */
     .main { padding: 0.75rem 0.75rem; }
@@ -626,16 +637,6 @@
           </div>
           <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:3px">
             <span>0</span><span>50</span><span>100</span>
-          </div>
-        </div>
-
-        <div class="card mt1">
-          <div class="card-title">评分说明</div>
-          <div style="font-size:13px;color:var(--text2);line-height:1.8">
-            <div>🟢 85–100 &nbsp;优秀</div>
-            <div>🔵 70–84 &nbsp;良好</div>
-            <div>🟡 55–69 &nbsp;一般</div>
-            <div>🔴 0–54 &nbsp;&nbsp;待提升</div>
           </div>
         </div>
       </div>
@@ -1121,6 +1122,7 @@ function updateScore(i, val) {
   const ring = document.getElementById('ring-fill');
   ring.style.strokeDashoffset = offset;
   ring.style.stroke = getScoreColor(score);
+  checkScoreCelebration(score);  // 实时触发
 }
 
 function clampScore(i, el) {
@@ -1596,16 +1598,18 @@ async function doChangePassword() {
 
 // ---- 达标庆祝效果 ----
 let lastCelebratedScore = 0
+let celebratedToday = ''  // 记录哪天已触发，避免切换页面重复触发
 
 function checkScoreCelebration(score) {
-  if (score >= 90 && lastCelebratedScore < 90) {
-    lastCelebratedScore = score
+  const todayKey = dateKey(currentDate)
+  const celebKey = todayKey + '_' + (score >= 90 ? '90' : '80')
+
+  if (score >= 90 && celebratedToday !== celebKey) {
+    celebratedToday = celebKey
     showConfetti()
-  } else if (score >= 80 && score < 90 && lastCelebratedScore < 80) {
-    lastCelebratedScore = score
+  } else if (score >= 80 && score < 90 && celebratedToday !== celebKey) {
+    celebratedToday = celebKey
     showThumbsUp()
-  } else if (score < 80) {
-    lastCelebratedScore = 0
   }
 }
 
