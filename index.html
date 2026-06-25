@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0044)file:///Users/tedwong/Downloads/index_2.html -->
+<!-- saved from url=(0044)file:///Users/tedwong/Downloads/index_3.html -->
 <html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -708,6 +708,7 @@
         <div class="card-title">数据管理</div>
         <div style="display:flex;flex-direction:column;gap:10px;margin-top:0.5rem">
           <button class="btn-add" style="background:var(--accent-light);color:var(--accent2);width:100%" onclick="exportData()">📤 导出数据（JSON）</button>
+          <button class="btn-add" style="background:var(--accent-light);color:var(--accent2);width:100%;margin-top:0" onclick="uploadAllToCloud()">☁️ 上传所有本地数据到云端</button>
           <label class="btn-add" style="background:var(--surface2);color:var(--text);border:0.5px solid var(--border2);width:100%;cursor:pointer;display:block;text-align:center">
             📥 导入数据（JSON）
             <input type="file" accept=".json" style="display:none" onchange="importData(event)">
@@ -1516,6 +1517,39 @@ function clearAllData() {
     renderToday();
     showSyncStatus('本地数据已清除', '#e67e22')
   }
+}
+
+async function uploadAllToCloud() {
+  if (!USER_ID) { alert('请先登录'); return }
+  const data = getData()
+  const keys = Object.keys(data)
+  if (!keys.length) { alert('没有本地数据'); return }
+  showSyncStatus(`上传中 0/${keys.length}…`, '#999')
+  let ok = 0
+  for (const dk of keys) {
+    const dayData = data[dk]
+    const row = {
+      user_id: USER_ID,
+      date_key: dk,
+      tasks: JSON.stringify(dayData.tasks || []),
+      note: dayData.note || ''
+    }
+    try {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/scores?on_conflict=user_id,date_key', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + (SESSION?.access_token || SUPABASE_KEY),
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=minimal'
+        },
+        body: JSON.stringify(row)
+      })
+      if (res.ok) ok++
+    } catch(e) {}
+    showSyncStatus(`上传中 ${ok}/${keys.length}…`, '#999')
+  }
+  showSyncStatus(`已上传 ${ok}/${keys.length} 条 ✓`)
 }
 
 function escHtml(s) {
