@@ -454,23 +454,18 @@
     .date-nav span { white-space: nowrap; }
 
     /* 底部导航栏 */
-    body { padding-bottom: 60px; }
-
-    body::after {
-      content: '';
-      display: block;
-      height: 60px;
-    }
+    body { padding-bottom: 80px; }
 
     .bottom-nav {
       position: fixed;
       bottom: 0; left: 0; right: 0;
-      height: 60px;
+      height: 80px;
       background: var(--surface);
       border-top: 0.5px solid var(--border);
       display: flex;
       z-index: 200;
       padding-bottom: env(safe-area-inset-bottom);
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
     }
 
     .bottom-nav-btn {
@@ -479,18 +474,36 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 3px;
+      gap: 5px;
       border: none;
       background: none;
       color: var(--text3);
-      font-size: 10px;
+      font-size: 11px;
       font-family: inherit;
       cursor: pointer;
-      padding: 6px 0;
+      padding: 8px 0 4px;
+      transition: color 0.15s;
     }
 
-    .bottom-nav-btn .icon { font-size: 20px; line-height: 1; }
-    .bottom-nav-btn.active { color: var(--accent); }
+    .bottom-nav-btn .icon {
+      font-size: 26px;
+      line-height: 1;
+      transition: transform 0.15s;
+    }
+
+    .bottom-nav-btn.active {
+      color: var(--accent);
+    }
+
+    .bottom-nav-btn.active .icon {
+      transform: translateY(-2px);
+    }
+
+    .bottom-nav-btn .label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.2px;
+    }
 
     /* 主内容区 */
     .main { padding: 0.75rem 0.75rem; }
@@ -552,19 +565,19 @@
 <!-- 手机底部导航 -->
 <nav class="bottom-nav" id="bottom-nav" style="display:none">
   <button class="bottom-nav-btn active" onclick="showPage('today')">
-    <span class="icon">📋</span><span>今日</span>
+    <span class="icon">📋</span><span class="label">今日</span>
   </button>
   <button class="bottom-nav-btn" onclick="showPage('week')">
-    <span class="icon">📈</span><span>本周</span>
+    <span class="icon">📈</span><span class="label">本周</span>
   </button>
   <button class="bottom-nav-btn" onclick="showPage('month')">
-    <span class="icon">📅</span><span>本月</span>
+    <span class="icon">📅</span><span class="label">本月</span>
   </button>
   <button class="bottom-nav-btn" onclick="showPage('year')">
-    <span class="icon">🗓</span><span>全年</span>
+    <span class="icon">🗓</span><span class="label">全年</span>
   </button>
   <button class="bottom-nav-btn" onclick="showPage('settings')">
-    <span class="icon">⚙️</span><span>模板</span>
+    <span class="icon">⚙️</span><span class="label">模板</span>
   </button>
 </nav>
 
@@ -616,13 +629,6 @@
           </div>
           <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:3px">
             <span>0</span><span>50</span><span>100</span>
-          </div>
-        </div>
-
-        <div class="card mt1">
-          <div class="card-title">权重分配</div>
-          <div style="position:relative;height:180px;">
-            <canvas id="weightChart" role="img" aria-label="权重分配饼图"></canvas>
           </div>
         </div>
 
@@ -719,6 +725,8 @@
             📥 导入数据（JSON）
             <input type="file" accept=".json" style="display:none" onchange="importData(event)">
           </label>
+          <button class="btn-add" style="background:var(--surface2);color:var(--text);border:0.5px solid var(--border2);width:100%"
+            onclick="showChangePassword()">🔑 修改密码</button>
           <button class="btn-add" style="background:#fde8e8;color:var(--danger);width:100%;margin-top:0.5rem"
             onclick="clearAllData()">🗑 清除所有数据</button>
           <button class="btn-add" style="background:#fde8e8;color:var(--danger);width:100%;margin-top:0.5rem"
@@ -1085,40 +1093,7 @@ function renderToday() {
   ring.style.strokeDashoffset = offset;
   ring.style.stroke = getScoreColor(score);
 
-  renderWeightChart(tasks);
-}
-
-function renderWeightChart(tasks) {
-  const ctx = document.getElementById('weightChart');
-  if (charts.weight) { charts.weight.destroy(); }
-
-  if (!tasks.length) {
-    ctx.style.display = 'none';
-    return;
-  }
-  ctx.style.display = 'block';
-
-  const colors = ['#2d6a4f','#1b7abf','#d4a017','#c0392b','#7b5ea7','#2980b9','#16a085','#d35400'];
-  charts.weight = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: tasks.map(t => t.name),
-      datasets: [{
-        data: tasks.map(t => t.weight),
-        backgroundColor: tasks.map((_, i) => colors[i % colors.length]),
-        borderWidth: 0,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 8, boxWidth: 10, color: '#888' } },
-        tooltip: { callbacks: { label: (c) => `${c.label}: ${c.raw}%` } }
-      },
-      cutout: '58%'
-    }
-  });
+  checkScoreCelebration(score);
 }
 
 function addTask() {
@@ -1573,6 +1548,140 @@ function clearAllData() {
     renderToday();
     showSyncStatus('本地数据已清除', '#e67e22')
   }
+}
+
+// ---- 修改密码 ----
+function showChangePassword() {
+  if (!USER_ID) { alert('请先登录'); return }
+  let overlay = document.createElement('div')
+  overlay.id = 'pwd-overlay'
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:2rem'
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border-radius:16px;padding:2rem;width:100%;max-width:360px">
+      <h3 style="margin-bottom:1rem;font-size:17px">🔑 修改密码</h3>
+      <div id="pwd-error" style="color:#c0392b;font-size:13px;margin-bottom:0.75rem;min-height:18px"></div>
+      <input id="pwd-new" type="password" placeholder="新密码（至少6位）"
+        style="width:100%;padding:10px 12px;border-radius:8px;border:0.5px solid var(--border2);background:var(--surface2);color:var(--text);font-size:15px;font-family:inherit;margin-bottom:10px;box-sizing:border-box">
+      <input id="pwd-confirm" type="password" placeholder="确认新密码"
+        style="width:100%;padding:10px 12px;border-radius:8px;border:0.5px solid var(--border2);background:var(--surface2);color:var(--text);font-size:15px;font-family:inherit;margin-bottom:1rem;box-sizing:border-box">
+      <button onclick="doChangePassword()"
+        style="width:100%;padding:12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:10px">
+        确认修改
+      </button>
+      <button onclick="document.getElementById('pwd-overlay').remove()"
+        style="width:100%;padding:12px;border-radius:8px;border:0.5px solid var(--border2);background:var(--surface2);color:var(--text);font-size:15px;cursor:pointer;font-family:inherit">
+        取消
+      </button>
+    </div>`
+  document.body.appendChild(overlay)
+}
+
+async function doChangePassword() {
+  const newPwd = document.getElementById('pwd-new').value
+  const confirm2 = document.getElementById('pwd-confirm').value
+  const errEl = document.getElementById('pwd-error')
+  if (newPwd.length < 6) { errEl.textContent = '密码至少6位'; return }
+  if (newPwd !== confirm2) { errEl.textContent = '两次密码不一致'; return }
+  errEl.textContent = '修改中…'
+  try {
+    const res = await fetch(SUPABASE_URL + '/auth/v1/user', {
+      method: 'PUT',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + (SESSION?.access_token || SUPABASE_KEY),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ password: newPwd })
+    })
+    const data = await res.json()
+    if (res.ok) {
+      document.getElementById('pwd-overlay').remove()
+      showSyncStatus('密码修改成功 ✓')
+    } else {
+      errEl.textContent = data.message || '修改失败，请重试'
+    }
+  } catch(e) { errEl.textContent = '网络错误，请重试' }
+}
+
+// ---- 达标庆祝效果 ----
+let lastCelebratedScore = 0
+
+function checkScoreCelebration(score) {
+  if (score >= 90 && lastCelebratedScore < 90) {
+    lastCelebratedScore = score
+    showConfetti()
+  } else if (score >= 80 && score < 90 && lastCelebratedScore < 80) {
+    lastCelebratedScore = score
+    showThumbsUp()
+  } else if (score < 80) {
+    lastCelebratedScore = 0
+  }
+}
+
+function showThumbsUp() {
+  const el = document.createElement('div')
+  el.style.cssText = `position:fixed;inset:0;z-index:8888;display:flex;align-items:center;
+    justify-content:center;pointer-events:none;`
+  el.innerHTML = `<div style="font-size:120px;animation:thumbAnim 1.2s ease forwards">👍</div>`
+  const style = document.createElement('style')
+  style.textContent = `@keyframes thumbAnim {
+    0%{transform:scale(0) rotate(-20deg);opacity:0}
+    40%{transform:scale(1.3) rotate(10deg);opacity:1}
+    70%{transform:scale(1) rotate(0deg);opacity:1}
+    100%{transform:scale(1.1) rotate(0deg);opacity:0}
+  }`
+  document.head.appendChild(style)
+  document.body.appendChild(el)
+  setTimeout(() => { el.remove(); style.remove() }, 1400)
+}
+
+function showConfetti() {
+  const canvas = document.createElement('canvas')
+  canvas.style.cssText = 'position:fixed;inset:0;z-index:8888;pointer-events:none;width:100%;height:100%'
+  canvas.width = window.innerWidth
+  canvas.height = window.innerHeight
+  document.body.appendChild(canvas)
+  const ctx2 = canvas.getContext('2d')
+
+  const pieces = []
+  const colors = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff922b','#cc5de8','#f06595','#20c997']
+  for (let i = 0; i < 120; i++) {
+    pieces.push({
+      x: Math.random() * canvas.width,
+      y: -20 - Math.random() * 200,
+      w: 8 + Math.random() * 10,
+      h: 5 + Math.random() * 6,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      vx: (Math.random()-0.5) * 4,
+      vy: 3 + Math.random() * 5,
+      angle: Math.random() * 360,
+      spin: (Math.random()-0.5) * 8,
+      opacity: 1
+    })
+  }
+
+  let frame = 0
+  function draw() {
+    ctx2.clearRect(0,0,canvas.width,canvas.height)
+    pieces.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.angle += p.spin
+      if (frame > 80) p.opacity -= 0.015
+      ctx2.save()
+      ctx2.globalAlpha = Math.max(0, p.opacity)
+      ctx2.translate(p.x, p.y)
+      ctx2.rotate(p.angle * Math.PI/180)
+      ctx2.fillStyle = p.color
+      ctx2.fillRect(-p.w/2, -p.h/2, p.w, p.h)
+      ctx2.restore()
+    })
+    frame++
+    if (frame < 140) requestAnimationFrame(draw)
+    else canvas.remove()
+  }
+  draw()
+
+  // 大拇指也一起显示
+  showThumbsUp()
 }
 
 async function uploadAllToCloud() {
