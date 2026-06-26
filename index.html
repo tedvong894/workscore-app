@@ -1723,9 +1723,15 @@ async function uploadAllToCloud() {
   if (!USER_ID) { alert('请先登录'); return }
   const data = getData()
   const keys = Object.keys(data)
-  if (!keys.length) { alert('没有本地数据'); return }
-  showSyncStatus(`上传中 0/${keys.length}…`, '#999')
+  const templates = getTemplates()
+
+  const total = keys.length + (templates.length ? 1 : 0)
+  if (!total) { alert('没有本地数据'); return }
+
+  showSyncStatus(`上传中 0/${total}…`, '#999')
   let ok = 0
+
+  // 上传每日评分
   for (const dk of keys) {
     const dayData = data[dk]
     const row = {
@@ -1747,9 +1753,17 @@ async function uploadAllToCloud() {
       })
       if (res.ok) ok++
     } catch(e) {}
-    showSyncStatus(`上传中 ${ok}/${keys.length}…`, '#999')
+    showSyncStatus(`上传中 ${ok}/${total}…`, '#999')
   }
-  showSyncStatus(`已上传 ${ok}/${keys.length} 条 ✓`)
+
+  // 上传模板
+  if (templates.length) {
+    await cloudSaveTemplates(templates)
+    ok++
+    showSyncStatus(`上传中 ${ok}/${total}…`, '#999')
+  }
+
+  showSyncStatus(`已上传 ${ok}/${total} 条 ✓`)
 }
 
 function escHtml(s) {
