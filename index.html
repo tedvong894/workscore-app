@@ -1008,10 +1008,10 @@ async function cloudLoadAll() {
   showSyncStatus('数据已加载 ✓')
 }
 
-async function cloudSaveTemplates(templates) {
-  if (!USER_ID) return
+async function cloudSaveTemplates(templates, retry = true) {
+  if (!USER_ID) return false
   try {
-    await fetch(SUPABASE_URL + '/rest/v1/scores?on_conflict=user_id,date_key', {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/scores?on_conflict=user_id,date_key', {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_KEY,
@@ -1026,7 +1026,13 @@ async function cloudSaveTemplates(templates) {
         note: ''
       })
     })
-  } catch(e) {}
+    if (res.status === 401 && retry) {
+      const ok = await refreshToken()
+      if (ok) return cloudSaveTemplates(templates, false)
+      return false
+    }
+    return res.ok
+  } catch(e) { return false }
 }
 
 // ---- 数据读写（本地+云端）----
@@ -1462,25 +1468,29 @@ function renderSettings() {
   }
 }
 
-function addTemplate() {
+async function addTemplate() {
   const name = document.getElementById('tmpl-name').value.trim();
   const weight = parseInt(document.getElementById('tmpl-weight').value) || 0;
   if (!name || weight <= 0) { alert('请填写名称和权重'); return; }
   const t = getTemplates();
   t.push({ name, weight });
   saveTemplates(t);
-  cloudSaveTemplates(t);
   document.getElementById('tmpl-name').value = '';
   document.getElementById('tmpl-weight').value = '';
   renderSettings();
+  showSyncStatus('同步中…', '#999')
+  const ok = await cloudSaveTemplates(t)
+  showSyncStatus(ok ? '模板已同步 ✓' : '模板同步失败', ok ? '#2d6a4f' : '#e67e22')
 }
 
-function deleteTemplate(i) {
+async function deleteTemplate(i) {
   const t = getTemplates();
   t.splice(i, 1);
   saveTemplates(t);
-  cloudSaveTemplates(t);
   renderSettings();
+  showSyncStatus('同步中…', '#999')
+  const ok = await cloudSaveTemplates(t)
+  showSyncStatus(ok ? '模板已同步 ✓' : '模板同步失败', ok ? '#2d6a4f' : '#e67e22')
 }
 
 function applyTemplate() {
